@@ -1,20 +1,25 @@
 package com.example.rental;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
 import java.lang.reflect.Field;
-import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 class CarControllerTDDTest {
 
@@ -25,11 +30,9 @@ class CarControllerTDDTest {
 
     @BeforeEach
     void setUp() {
-        // Create classic mock manually
         carRentalService = mock(CarRentalService.class);
         objectMapper = new ObjectMapper();
         
-        // Create controller and inject mock using reflection
         carController = new CarController();
         try {
             Field field = CarController.class.getDeclaredField("carRentalService");
@@ -39,20 +42,15 @@ class CarControllerTDDTest {
             fail("Failed to set up test: " + e.getMessage());
         }
         
-        // Set up MockMvc with standalone configuration
         mockMvc = MockMvcBuilders.standaloneSetup(carController).build();
     }
 
-    // Tests for Feature 1: Add a car
-    
     @Test
     void addCar_whenValidCar_shouldReturnSuccess() throws Exception {
-        // Given
         Car newCar = new Car("DEF456", "Ford", true);
         String carJson = objectMapper.writeValueAsString(newCar);
         when(carRentalService.addCar(any(Car.class))).thenReturn(true);
 
-        // When & Then
         mockMvc.perform(post("/cars/add")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(carJson))
@@ -64,12 +62,10 @@ class CarControllerTDDTest {
     
     @Test
     void addCar_whenDuplicateRegistrationNumber_shouldReturnConflict() throws Exception {
-        // Given
         Car duplicateCar = new Car("ABC123", "Toyota", true);
         String carJson = objectMapper.writeValueAsString(duplicateCar);
         when(carRentalService.addCar(any(Car.class))).thenReturn(false);
 
-        // When & Then
         mockMvc.perform(post("/cars/add")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(carJson))
@@ -79,15 +75,11 @@ class CarControllerTDDTest {
         verify(carRentalService).addCar(any(Car.class));
     }
 
-    // Tests for Feature 2: Search cars by model
-    
     @Test
     void searchCarsByModel_whenModelExists_shouldReturnMatchingCars() throws Exception {
-        // Given
         Car toyotaCar = new Car("ABC123", "Toyota", true);
         when(carRentalService.getCarsByModel("Toyota")).thenReturn(Collections.singletonList(toyotaCar));
 
-        // When & Then
         mockMvc.perform(get("/cars/search")
                 .param("model", "Toyota")
                 .accept(MediaType.APPLICATION_JSON))
@@ -101,10 +93,8 @@ class CarControllerTDDTest {
     
     @Test
     void searchCarsByModel_whenModelDoesNotExist_shouldReturnEmptyList() throws Exception {
-        // Given
         when(carRentalService.getCarsByModel("BMW")).thenReturn(Collections.emptyList());
 
-        // When & Then
         mockMvc.perform(get("/cars/search")
                 .param("model", "BMW")
                 .accept(MediaType.APPLICATION_JSON))
